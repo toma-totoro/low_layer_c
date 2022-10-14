@@ -13,6 +13,8 @@ int main(int argc, char **argv){
     printf(".global main\n");
     printf("main:\n");
     /*先頭の数字をレジスタにセット*/
+    /* strtolの2つ目の引数に次の開始位置が返される。*/
+    /* 先頭が数字でない場合、下のループでエラー扱いとなる。*/
     printf("  mov rax, %ld\n", strtol(p, &p, 10));
     while (*p){
         if (*p == '+'){
@@ -26,8 +28,8 @@ int main(int argc, char **argv){
             printf("  sub rax, %ld\n", strtol(p, &p, 10));
             continue;
         }
-
-        fprintf(stderr, "予期しない文字です: %c\n", *p);
+        /* %cの前後にシングルクオートの意味不明 */
+        fprintf(stderr, "予期しない文字です: '%c'\n", *p);
         return 1;
     }
 
