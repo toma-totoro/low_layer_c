@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+// 入力プログラム（先頭位置）
+char *user_input;
+
 /*
 # typedef とは既存のデータ型に新たな名前をつけるキーワードです。
 # ポイントは、typedef では新たな名前を作ることはできるのですが、新たな型自体を作るわけではない点です。
@@ -40,6 +43,35 @@ void error(char *fmt, ...) {
     fprintf(stderr, "\n");
     exit(1);
 }
+
+// エラーメッセージ出力(エラー位置表示版)
+void error_at(char *loc, char *fmt, ...){
+    // fprintf(stderr, "%p\n", user_input);
+    // fprintf(stderr, "%p\n", loc);
+    va_list ap;
+    va_start(ap, fmt);
+
+    // プログラム先頭アドレス - エラートークンの先頭アドレス
+    // ==> プログラム先頭からのバイト数
+    int pos = loc - user_input;
+    // fprintf(stderr, "pos: %d\n", pos);
+    // fprintf(stderr, ">>>%*s<<<\n", 0, "#");
+    // fprintf(stderr, ">>>%*s<<<\n", 1, "#");
+    // fprintf(stderr, ">>>%*s<<<\n", 2, "#");
+    
+    // プログラム表示
+    fprintf(stderr, "%s\n", user_input);
+    
+    if (pos > 0){
+        fprintf(stderr, "%*s", pos, " "); //pos個のスペース
+    }
+    fprintf(stderr, "^");
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    exit(1);
+
+}
+
 // 着目ているトークンが期待している記号のときには、トークンを１つ読み進めて、
 // 真を返す。それ以外の場合には偽を返す
 bool consume(char op) {
@@ -55,7 +87,7 @@ bool consume(char op) {
 // (??? consume関数との違いは)
 void expect(char op) {
     if(token->kind != TK_RESERVED || token->str[0] != op){
-        error("'%c'ではありません", op);
+        error_at(token->str, "'%c'ではありません", op);
     }
     token = token->next;
 }
@@ -65,7 +97,7 @@ void expect(char op) {
 // それ以外の場合にはエラーを報告する。
 int expect_number(){
     if (token->kind != TK_NUM){
-        error("数ではありません。");
+        error_at(token->str, "数ではありません。");
     }
     int val = token->val; // 数値
     token = token->next; // 着目しているトークンを次へ
@@ -78,7 +110,7 @@ bool at_eof(){
 }
 
 // 新しいトークンを作成してcurに繋げる
-// ?? curとは、lispの用語??
+// curとは、カレントの意味
 Token *new_token(TokenKind kind, Token *cur, char *str){
     // mallocでなくcallocでメモリを割り当てるのはなぜ？
     // ==> callocは割り当てたメモリをゼロクリアするため使用した。
@@ -95,6 +127,7 @@ Token *tokenize(char *p){
     // 引数: p 入力文字列へのポインタ
 
     Token head; //先頭のTokenを用意して、それにTokenを繋いでいく
+    head.str = user_input; // 先頭がエラーのときのため
     head.next = NULL;
     Token *cur = &head;
 
@@ -112,7 +145,7 @@ Token *tokenize(char *p){
         }
 
         if(isdigit(*p)){
-            // 数値の時は、strtolで値の取得＆pの位置を進める
+            // 数値の時
             cur = new_token(TK_NUM, cur, p);
             cur->val = strtol(p, &p, 10);
             continue;
@@ -120,7 +153,7 @@ Token *tokenize(char *p){
 
         //ここまで来るってことは、想定外の値
         //スペースでも、演算子でも、数値でもない
-        error("トークナイズできません。");
+        error_at(cur->str, "トークナイズできません。");
     }
     // 末尾トークンを繋げる
     // new_tokenの戻りは不要なので、受け取らないってこと？
@@ -136,6 +169,7 @@ int main(int argc, char **argv){
         return 1;
     }
     // トークナイズし、結果をグローバルの*tokenに格納する
+    user_input = argv[1]; //エラーメッセージ用にプログラム先頭位置保管
     token = tokenize(argv[1]);
 
     /* お決まり */
