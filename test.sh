@@ -5,6 +5,14 @@ assert(){
 
     # 9ccを実行してアセンブラ・ファイルを出力する。
     ./9cc "$input" > tmp.s
+    # (TODO=>DONE)9cc の戻り値をチェックし正常終了でないとき、メッセージを表示して、以降の処理をスキップする。
+    # (TODO)本当はパースできない文字列の時の確認方法を考える必要あり。
+    if [ $? -ne 0 ]; then
+        echo 9cc実行時エラー
+        echo $input
+        exit 1
+    fi
+    # アセンブルし、バイナリを作成する。
     cc -o tmp tmp.s
     # アセンブルしたバイナリを実行
     ./tmp
@@ -24,8 +32,9 @@ assert(){
 assert 0 0
 assert 42 42
 assert 21 "5+20-4"
-assert 11 "-5+20-4"
-assert 0 "@0"
+assert 11 "0-5+20-4"
+assert 11 " 0 - 5 + 20 - 4"
 assert 21 "05+000020-04"
-assert 0 "5 +20-4"
+assert 21 "5 +20-4"
+assert 0 "@0"
 echo OK
